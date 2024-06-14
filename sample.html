@@ -5,15 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Text Summarizer</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .fixed-size {
+            width: calc(100% - 20px); /* Adjust width for margin */
+            height: 500px;
+            resize: none; /* Disable resizing */
+            margin: 10px;
+            padding: 10px; /* Internal margin */
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        }
+        .output-box {
+            width: calc(100% - 20px); /* Adjust width for margin */
+            height: 500px;
+            margin: 10px;
+            padding: 10px; /* Internal margin */
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+            overflow-y: auto; /* Enable vertical scrolling */
+        }
+    </style>
 </head>
 <body class="bg-gray-100 h-screen flex justify-center items-center">
     <div class="max-w-6xl w-full bg-white shadow-md rounded-lg overflow-hidden">
         <div class="flex">
-            <div class="w-full bg-gray-200 p-4">
-                <textarea id="inputText" rows="20" class="w-full h-full border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 rounded-md resize-none"></textarea>
+            <div class="w-1/2 bg-gray-200 p-4">
+                <textarea id="inputText" class="fixed-size border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 rounded-md"></textarea>
             </div>
-            <div class="w-full bg-gray-100 p-4">
-                <div id="output" class="h-full overflow-y-auto"></div> <!-- Output will be displayed here -->
+            <div class="w-1/2 bg-gray-100 p-4">
+                <div id="output" class="output-box bg-white rounded-md border border-gray-300"></div> <!-- Output will be displayed here -->
             </div>
         </div>
         <div class="flex justify-center p-4 space-x-4">
