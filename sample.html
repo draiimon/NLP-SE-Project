@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Summarizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 h-screen flex justify-center items-center">
+    <div class="max-w-6xl w-full bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="flex">
+            <div class="w-full bg-gray-200 p-4">
+                <textarea id="inputText" rows="20" class="w-full h-full border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 rounded-md resize-none"></textarea>
+            </div>
+            <div class="w-full bg-gray-100 p-4">
+                <div id="output" class="h-full overflow-y-auto"></div> <!-- Output will be displayed here -->
+            </div>
+        </div>
+        <div class="flex justify-center p-4 space-x-4">
+            <button onclick="summarizeText()" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Summarize</button>
+            <button onclick="paraphraseText()" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">Paraphrase</button>
+        </div>
+    </div>
+
+    <script>
+        function summarizeText() {
+            var inputText = document.getElementById("inputText").value;
+
+            fetch('/summarize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'inputText=' + encodeURIComponent(inputText),
+            })
+            .then(response => response.text())
+            .then(data => {
+                // Display the summary output
+                document.getElementById("output").innerHTML = "<h2>Summary:</h2><p>" + data + "</p>";
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function paraphraseText() {
+            var inputText = document.getElementById("inputText").value;
+
+            fetch('/paraphrase', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'inputText=' + encodeURIComponent(inputText),
+            })
+            .then(response => response.text())
+            .then(data => {
+                // Display the paraphrase output
+                document.getElementById("output").innerHTML = "<h2>Paraphrase:</h2><p>" + data + "</p>";
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
