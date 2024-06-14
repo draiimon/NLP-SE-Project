@@ -1,98 +1,82 @@
-import tkinter as tk
-import random  # For generating random suggestions
-from groq import Groq
-import os
-import threading
+import nltk
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.corpus import stopwords, wordnet
+from nltk.probability import FreqDist
+import heapq
+from flask import Flask, render_template, request
+import random
 
-# Set GROQ API key
-os.environ["GROQ_API_KEY"] = "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"
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
 
-# Initialize Groq client
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+app = Flask(__name__, template_folder='C:\\Users\\A-222\\Desktop\\Castillo Files\\templates')
 
-# Function to generate AI response in a separate thread
-def generate_response_async(prompt):
-    response = generate_response(prompt)
-    update_chat_display(prompt, response)
+def get_synonyms(word):
+    synonyms = set()
+    for syn in wordnet.synsets(word):
+        for lemma in syn.lemmas():
+            synonyms.add(lemma.name())
+    return list(synonyms)
 
-# Function to generate AI response
-def generate_response(prompt):
-    # Define the user message
-    user_message = [{"role": "user", "content": prompt}]
+def paraphrase_text(text):
+    words = word_tokenize(text.lower())
+    paraphrased_words = []
+    for word in words:
+        if word not in stopwords.words("english") and len(word) > 2:
+            synonyms = get_synonyms(word)
+            if synonyms:
+                paraphrased_words.append(random.choice(synonyms).replace("_", " "))
+            else:
+                paraphrased_words.append(word)
+        else:
+            paraphrased_words.append(word)
+    return ' '.join(paraphrased_words)
+
+def summarize_and_paraphrase(text, num_sentences=2):
+    summarized_text = ""
+    # Tokenize the text into sentences
+    sentences = sent_tokenize(text)
     
-    # Request chat completion
-    chat_completion = client.chat.completions.create(
-        messages=user_message,
-        model="llama3-8b-8192",
-    )
+    # Tokenize words
+    words = word_tokenize(text.lower())
+
+    # Filter out stopwords
+    stop_words = set(stopwords.words("english"))
+    filtered_words = [word for word in words if word not in stop_words]
+
+    # Calculate word frequency
+    word_freq = FreqDist(filtered_words)
+
+    # Rank sentences based on word frequency
+    sentence_scores = {}
+    for sentence in sentences:
+        for word in word_tokenize(sentence.lower()):
+            if word in word_freq:
+                if len(sentence.split(' ')) < 30:
+                    if sentence not in sentence_scores:
+                        sentence_scores[sentence] = word_freq[word]
+                    else:
+                        sentence_scores[sentence] += word_freq[word]
+
+    # Select top sentences based on scores
+    summary_sentences = heapq.nlargest(num_sentences, sentence_scores, key=sentence_scores.get)
+    summarized_text += ' '.join(summary_sentences)
     
-    # Get the AI response
-    ai_response = chat_completion.choices[0].message.content
+    # Paraphrase the summarized text
+    paraphrased_text = paraphrase_text(summarized_text)
     
-    # Customize the response to mention MoodSync
-    ai_response = ai_response.replace("AI", "MoodSync")
-    return ai_response
+    return paraphrased_text
 
-# Function to update the chat display
-def update_chat_display(user_message, ai_response):
-    chat_display.config(state=tk.NORMAL)
-    chat_display.insert(tk.END, f"You: {user_message}\n", "user")
-    chat_display.insert(tk.END, f"MoodSync: {ai_response}\n\n", "ai")
-    chat_display.config(state=tk.DISABLED)
-    chat_display.see(tk.END)
+@app.route('/')
+def index():
+    return render_template('sample.html')
 
-# Function to handle button click event
-def on_click(event=None):
-    prompt = user_input.get()
-    if prompt:
-        user_input.delete(0, tk.END)
-        threading.Thread(target=generate_response_async, args=(prompt,)).start()
+@app.route('/summarize', methods=['POST'])
+def summarize():
+    text = request.form['inputText']
+    summarized_text = summarize_and_paraphrase(text)
+    return summarized_text
 
-# Function to generate a random suggestion
-def generate_suggestion():
-    suggestions = [
-        "How was your day?",
-        "What's on your mind?",
-        "Tell me about something that made you happy today.",
-        "How are you feeling right now?",
-        "Share a recent experience with me.",
-        "Is there something you'd like to talk about?"
-    ]
-    return random.choice(suggestions)
-
-# Function to handle suggestion button click event
-def on_suggestion_click():
-    suggestion = generate_suggestion()
-    user_input.insert(tk.END, suggestion)
-
-# Create main application window
-root = tk.Tk()
-root.title("MoodSync - AI Mood Tracker")
-
-# Create text widget for chat display
-chat_display = tk.Text(root, height=20, width=50, wrap=tk.WORD)
-chat_display.pack(padx=10, pady=10)
-chat_display.tag_config("user", foreground="blue")
-chat_display.tag_config("ai", foreground="green")
-chat_display.config(state=tk.DISABLED)
-
-# Create entry widget for user input
-user_input = tk.Entry(root, width=50)
-user_input.pack(padx=10, pady=(0, 10))
-user_input.bind("<Return>", on_click)
-
-# Create button to trigger AI response
-send_button = tk.Button(root, text="Send", command=on_click)
-send_button.pack(padx=10, pady=(0, 10), ipadx=10)
-
-# Create suggestion button
-suggestion_button = tk.Button(root, text="Suggestion", command=on_suggestion_click)
-suggestion_button.pack(padx=10, pady=(0, 10), ipadx=10)
-
-# Introduce MoodSync with a personalized touch
-intro_text = "Welcome to MoodSync!\nI'm here to listen, understand, and sync with your mood. Share how you feel with me, and let's navigate through emotions together."
-chat_display.insert(tk.END, intro_text, "intro")
-chat_display.tag_config("intro", foreground="purple", font=("Helvetica", 12, "italic"))
-
-# Run the application
-root.mainloop()
+if __name__ == '__main__':
+    app.run(debug=True)
